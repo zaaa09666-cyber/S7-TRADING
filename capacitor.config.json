@@ -1,0 +1,13 @@
+{
+  "appId": "com.gold.analyzer",
+  "appName": "XAUUSD Analyzer",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

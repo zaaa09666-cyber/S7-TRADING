@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>محلل الذهب XAUUSD</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#262a33;--tx:#e8eaed;--mut:#8b919c;--buy:#26a69a;--sell:#ef5350;--gold:#f0b90b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) 12px 24px}
+h1{font-size:18px;margin:14px 0 2px;color:var(--gold)}
+.sub{color:var(--mut);font-size:12px;margin-bottom:10px}
+.tfs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.tfs button{flex:1;min-width:52px;background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:9px 0;font-size:14px}
+.tfs button.on{background:var(--gold);color:#000;border-color:var(--gold);font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.price{display:flex;justify-content:space-between;align-items:baseline}
+.price b{font-size:26px;direction:ltr}
+#chart{width:100%;height:300px;display:block;direction:ltr}
+.sig{text-align:center;padding:16px 8px}
+.sig .t{font-size:30px;font-weight:800}
+.sig.buy .t{color:var(--buy)}.sig.sell .t{color:var(--sell)}.sig.wait .t{color:var(--mut)}
+.conf{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:10px 0 4px}
+.conf i{display:block;height:100%;background:var(--gold)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.grid div{background:#0f1115;border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+.grid small{display:block;color:var(--mut);font-size:11px}
+.grid b{direction:ltr;display:inline-block;font-size:16px}
+.sl b{color:var(--sell)}.tp b{color:var(--buy)}
+ul{margin:6px 0 0;padding:0 18px;font-size:13px;line-height:1.9}
+.warn{font-size:11px;color:var(--mut);line-height:1.7;margin-top:12px}
+.err{color:var(--sell);font-size:13px}
+button.ref{width:100%;margin-top:10px;background:transparent;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:10px;font-size:14px}
+</style>
+</head>
+<body>
+<h1>محلل الذهب XAUUSD</h1>
+<div class="sub">تحليل فني آلي: EMA • MACD • RSI • بولنجر • ATR • دعم/مقاومة</div>
+
+<div class="tfs" id="tfs"></div>
+
+<div class="card">
+  <div class="price"><span id="symlbl">XAUUSD</span><b id="px">--</b></div>
+  <canvas id="chart"></canvas>
+</div>
+
+<div class="card sig wait" id="sig">
+  <div class="t" id="sigt">جاري التحليل...</div>
+  <div class="conf"><i id="confb" style="width:0%"></i></div>
+  <small id="conft" style="color:var(--mut)"></small>
+  <div class="grid" id="lv" style="display:none">
+    <div><small>الدخول</small><b id="en"></b></div>
+    <div class="sl"><small>وقف الخسارة</small><b id="sl"></b></div>
+    <div class="tp"><small>الهدف الأول</small><b id="tp1"></b></div>
+    <div class="tp"><small>الهدف الثاني</small><b id="tp2"></b></div>
+  </div>
+</div>
+
+<div class="card">
+  <b style="font-size:14px">أسباب الإشارة</b>
+  <ul id="why"></ul>
+</div>
+
+<button class="ref" id="ref">تحديث الآن</button>
+<div class="err" id="err"></div>
+
+<p class="warn">⚠️ هذا التطبيق أداة تحليل فني تعليمية تعتمد على مؤشرات رياضية، وليس نصيحة مالية ولا توصية استثمارية. لا توجد إشارة مضمونة، والتداول بالذهب بالرافعة المالية قد يسبب خسارة كامل رأس المال. استخدم دائماً وقف الخسارة وإدارة رأس مال صارمة، واستشر مختصاً مرخصاً. البيانات من مصدر مجاني قد تتأخر أو تتوقف.</p>
+
+<script>
+/* ====== ANALYSIS START ====== */
+function ema(v,p){const k=2/(p+1),o=Array(v.length).fill(NaN);if(v.length<p)return o;let s=0;for(let i=0;i<p;i++)s+=v[i];let e=s/p;o[p-1]=e;for(let i=p;i<v.length;i++){e=v[i]*k+e*(1-k);o[i]=e}return o}
+function rsi(c,p=14){const o=Array(c.length).fill(NaN);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>=0?g+=d:l-=d}g/=p;l/=p;o[p]=l===0?100:100-100/(1+g/l);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];g=(g*(p-1)+Math.max(d,0))/p;l=(l*(p-1)+Math.max(-d,0))/p;o[i]=l===0?100:100-100/(1+g/l)}return o}
+function macd(c){const a=ema(c,12),b=ema(c,26),line=c.map((_,i)=>isNaN(a[i])||isNaN(b[i])?NaN:a[i]-b[i]);const st=line.findIndex(x=>!isNaN(x));const sig=Array(c.length).fill(NaN);if(st>=0){const s=ema(line.slice(st),9);s.forEach((x,i)=>sig[st+i]=x)}return{line,sig,hist:line.map((x,i)=>x-sig[i])}}
+function atr(h,l,c,p=14){const o=Array(c.length).fill(NaN);if(c.length<=p)return o;const tr=c.map((_,i)=>i===0?h[i]-l[i]:Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));let a=0;for(let i=1;i<=p;i++)a+=tr[i];a/=p;o[p]=a;for(let i=p+1;i<c.length;i++){a=(a*(p-1)+tr[i])/p;o[i]=a}return o}
+function boll(c,p=20,m=2){const mid=Array(c.length).fill(NaN),up=[...mid],lo=[...mid];for(let i=p-1;i<c.length;i++){let s=0;for(let j=i-p+1;j<=i;j++)s+=c[j];const mu=s/p;let v=0;for(let j=i-p+1;j<=i;j++)v+=(c[j]-mu)**2;const sd=Math.sqrt(v/p);mid[i]=mu;up[i]=mu+m*sd;lo[i]=mu-m*sd}return{mid,up,lo}}
+function levels(H,L,close,lb=5,span=150){const n=H.length,res=[],sup=[];for(let i=Math.max(lb,n-span);i<n-lb;i++){let isH=true,isL=true;for(let j=i-lb;j<=i+lb;j++){if(H[j]>H[i])isH=false;if(L[j]<L[i])isL=false}if(isH)res.push(H[i]);if(isL)sup.push(L[i])}
+ const r=res.filter(x=>x>close).sort((a,b)=>a-b)[0],s=sup.filter(x=>x<close).sort((a,b)=>b-a)[0];return{res:r,sup:s}}
+function analyze(C){
+  const o=C.map(x=>x.o),h=C.map(x=>x.h),l=C.map(x=>x.l),c=C.map(x=>x.c),n=c.length,i=n-1;
+  const e20=ema(c,20),e50=ema(c,50),e200=ema(c,200),R=rsi(c),M=macd(c),A=atr(h,l,c),B=boll(c);
+  const px=c[i],why=[];let score=0;
+  if(px>e50[i]&&e20[i]>e50[i]){score+=2;why.push("اتجاه صاعد: السعر فوق EMA50 وEMA20 فوق EMA50 (+2)")}
+  else if(px<e50[i]&&e20[i]<e50[i]){score-=2;why.push("اتجاه هابط: السعر تحت EMA50 وEMA20 تحت EMA50 (−2)")}
+  else why.push("الاتجاه متذبذب: المتوسطات غير متوافقة (0)");
+  if(!isNaN(e200[i])){if(e50[i]>e200[i]){score+=1;why.push("EMA50 فوق EMA200: الاتجاه الأكبر صاعد (+1)")}else{score-=1;why.push("EMA50 تحت EMA200: الاتجاه الأكبر هابط (−1)")}}
+  const hs=M.hist[i],hp=M.hist[i-1];
+  if(hs>0){score+=1;why.push("هيستوجرام MACD موجب"+(hs>hp?" ويتزايد":"")+" (+1)")}
+  else if(hs<0){score-=1;why.push("هيستوجرام MACD سالب"+(hs<hp?" ويتزايد":"")+" (−1)")}
+  const r=R[i];
+  if(r>55){score+=1;why.push("RSI = "+r.toFixed(1)+" زخم شرائي (+1)")}
+  else if(r<45){score-=1;why.push("RSI = "+r.toFixed(1)+" زخم بيعي (−1)")}
+  else why.push("RSI = "+r.toFixed(1)+" منطقة محايدة (0)");
+  if(r>72){score-=1;why.push("تشبع شرائي (RSI>72): احتمال تصحيح (−1)")}
+  if(r<28){score+=1;why.push("تشبع بيعي (RSI<28): احتمال ارتداد (+1)")}
+  if(px>B.mid[i]){score+=.5;why.push("السعر فوق منتصف بولنجر (+0.5)")}else{score-=.5;why.push("السعر تحت منتصف بولنجر (−0.5)")}
+  const lv=levels(h,l,px),a=A[i],max=5.5,conf=Math.min(95,Math.round(Math.abs(score)/max*100));
+  let dir="wait",trade=null;
+  if(score>=3)dir="buy";else if(score<=-3)dir="sell";
+  if(dir!=="wait"){
+    const buy=dir==="buy";let risk=1.5*a;
+    const near=buy?lv.sup:lv.res;
+    if(near!==undefined){const d=Math.abs(px-near)+0.2*a;if(d>=0.8*a&&d<=2.5*a)risk=d}
+    const sl=buy?px-risk:px+risk,k=buy?1:-1;
+    trade={entry:px,sl,tp1:px+k*1.5*risk,tp2:px+k*2.5*risk,risk};
+    const tgt=buy?lv.res:lv.sup;
+    if(tgt!==undefined)why.push((buy?"أقرب مقاومة: ":"أقرب دعم: ")+tgt.toFixed(2)+" — انتبه لردة الفعل عندها");
+    why.push("وقف الخسارة مبني على ATR"+(near!==undefined?" وأقرب "+(buy?"دعم":"مقاومة"):"")+"، والأهداف بنسبة 1.5R و2.5R");
+  }else why.push("مجموع النقاط ضعيف ("+score.toFixed(1)+"): لا توجد ميزة واضحة، الأفضل الانتظار");
+  return{dir,score,conf,trade,why,series:{e20,e50,e200,bb:B},lv,atr:a,px}
+}
+/* ====== ANALYSIS END ====== */
+
+const TFS=[["5د","5m","5d"],["15د","15m","5d"],["30د","30m","1mo"],["1س","60m","3mo"],["1ي","1d","2y"]];
+let tf=1,timer=null,busy=false;
+const $=id=>document.getElementById(id);
+TFS.forEach((t,k)=>{const b=document.createElement("button");b.textContent=t[0];b.onclick=()=>{tf=k;render();load()};b.dataset.k=k;$("tfs").appendChild(b)});
+function render(){[...$("tfs").children].forEach(b=>b.classList.toggle("on",+b.dataset.k===tf))}
+render();
+
+async function fetchYahoo(sym,iv,rg){
+  const url="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(sym)+"?interval="+iv+"&range="+rg;
+  const r=await fetch(url);if(!r.ok)throw new Error("HTTP "+r.status);
+  const j=await r.json(),res=j.chart&&j.chart.result&&j.chart.result[0];if(!res)throw new Error("لا توجد بيانات");
+  const q=res.indicators.quote[0],C=[];
+  res.timestamp.forEach((t,i)=>{if(q.close[i]!=null&&q.open[i]!=null&&q.high[i]!=null&&q.low[i]!=null)C.push({t,o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i]})});
+  return C
+}
+async function load(){
+  if(busy)return;busy=true;$("err").textContent="";
+  const [,iv,rg]=TFS[tf];let C,used="XAUUSD";
+  try{
+    try{C=await fetchYahoo("XAUUSD=X",iv,rg)}catch(e){C=await fetchYahoo("GC=F",iv,rg);used="الذهب (عقود GC=F)"}
+    if(C.length<60)throw new Error("بيانات غير كافية");
+    $("symlbl").textContent=used;
+    show(C)
+  }catch(e){
+    $("err").textContent="تعذر جلب البيانات: "+e.message+" — تأكد من الإنترنت وحاول التحديث.";
+    $("sigt").textContent="—"
+  }
+  busy=false
+}
+const f=x=>x.toFixed(2);
+function show(C){
+  const a=analyze(C);$("px").textContent=f(a.px);
+  const s=$("sig");s.className="card sig "+a.dir;
+  $("sigt").textContent=a.dir==="buy"?"شراء BUY":a.dir==="sell"?"بيع SELL":"انتظار (لا صفقة)";
+  $("confb").style.width=a.conf+"%";
+  $("conft").textContent="قوة الإشارة: "+a.conf+"% • النقاط: "+a.score.toFixed(1)+" من ±5.5";
+  const g=$("lv");
+  if(a.trade){g.style.display="grid";$("en").textContent=f(a.trade.entry);$("sl").textContent=f(a.trade.sl);$("tp1").textContent=f(a.trade.tp1);$("tp2").textContent=f(a.trade.tp2)}else g.style.display="none";
+  $("why").innerHTML=a.why.map(x=>"<li>"+x+"</li>").join("");
+  draw(C,a)
+}
+function draw(C,a){
+  const cv=$("chart"),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);g.clearRect(0,0,W,H);
+  const N=70,off=C.length-N,V=C.slice(-N),padR=52;
+  const t=a.trade;let hi=Math.max(...V.map(x=>x.h)),lo=Math.min(...V.map(x=>x.l));
+  if(t){hi=Math.max(hi,t.tp2,t.entry,t.sl);lo=Math.min(lo,t.tp2,t.entry,t.sl)}
+  const m=(hi-lo)*.05;hi+=m;lo-=m;
+  const Y=v=>H-(v-lo)/(hi-lo)*H,cw=(W-padR)/N;
+  g.strokeStyle="#262a33";g.fillStyle="#8b919c";g.font="10px sans-serif";g.lineWidth=1;
+  for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,y=Y(v);g.beginPath();g.moveTo(0,y);g.lineTo(W-padR,y);g.stroke();g.fillText(v.toFixed(1),W-padR+4,y+3)}
+  V.forEach((x,i)=>{const cx=i*cw+cw/2,up=x.c>=x.o;g.strokeStyle=g.fillStyle=up?"#26a69a":"#ef5350";
+    g.beginPath();g.moveTo(cx,Y(x.h));g.lineTo(cx,Y(x.l));g.stroke();
+    const y1=Y(Math.max(x.o,x.c)),y2=Y(Math.min(x.o,x.c));g.fillRect(cx-cw*.35,y1,cw*.7,Math.max(1,y2-y1))});
+  const line=(arr,col)=>{g.strokeStyle=col;g.lineWidth=1.4;g.beginPath();let s=false;V.forEach((_,i)=>{const v=arr[off+i];if(isNaN(v))return;const x=i*cw+cw/2;s?g.lineTo(x,Y(v)):(g.moveTo(x,Y(v)),s=true)});g.stroke()};
+  line(a.series.e20,"#f0b90b");line(a.series.e50,"#42a5f5");
+  if(t){[["دخول",t.entry,"#e8eaed"],["SL",t.sl,"#ef5350"],["TP1",t.tp1,"#26a69a"],["TP2",t.tp2,"#26a69a"]].forEach(([n,v,col])=>{
+    g.strokeStyle=col;g.fillStyle=col;g.setLineDash([5,4]);g.lineWidth=1;g.beginPath();g.moveTo(0,Y(v));g.lineTo(W-padR,Y(v));g.stroke();g.setLineDash([]);g.fillText(n,4,Y(v)-3)})}
+}
+$("ref").onclick=load;
+load();
+timer=setInterval(load,60000);
+window.addEventListener("resize",()=>{});
+</script>
+</body>
+</html>
